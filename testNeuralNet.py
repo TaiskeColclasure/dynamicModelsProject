@@ -143,6 +143,8 @@ record = True  # Controls whether or not to store gifs of run
 for creature in range(N):
     peeps.append(Agent((random.randint(0, 16), random.randint(0, 16)), randomGenome()))
 
+survival_percentages = []
+
 for generation in range(G):
     # Random Placement
     for creature in range(len(peeps)):
@@ -162,6 +164,7 @@ for generation in range(G):
                 plt.xlim(0, 16)
                 plt.ylim(0, 16)
                 plt.savefig("frames/bruh{}.png".format(step))
+                # plt.show()
                 plt.close()
     if record:
         frames = []
@@ -200,6 +203,15 @@ for generation in range(G):
                 newGenome += parent2[chromosome] + " "
         newGenome = newGenome[:-1]
         peeps.append(Agent((0, 0), newGenome))
+    
+    curr_survival_percentage = len(peeps) / N
+    survival_percentages.append(curr_survival_percentage)
+
+    plt.plot(survival_percentages)
+    plt.title('Survival Rate Across Generations')
+    plt.xlabel('Generation')
+    plt.ylabel('Survival Rate')
+    plt.show()
 
 # for generation
 #   for timestep
