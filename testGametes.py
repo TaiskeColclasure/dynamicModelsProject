@@ -82,9 +82,15 @@ class Agent:
         for chromosome in range(28):
             randInt = np.random.randint(0, 17)
             gamete += (
-                parent1[chromosome][:randInt] +
-                parent2[chromosome][randInt:] + " "
+                parent1[chromosome][:randInt] + parent2[chromosome][randInt:] + " "
             )
+            if np.random.uniform() < 0.0005:
+                mutant_string = gamete[:-17] + gamete[-17:].replace(
+                    gamete[-17:][randInt], random.choice("0123456789abcdef")
+                )
+                if len(mutant_string) > 18:
+                    mutant_string = mutant_string[:18]
+                gamete += mutant_string + " "
         return gamete[:-1]
 
 
@@ -217,11 +223,13 @@ for generation in range(G):
             else:
                 corner = (corner_x, corner_y + height)
             hypotenuse = np.linalg.norm(
-                np.array(corner) - np.array((peeps[creature].loc[0], peeps[creature].loc[1])))
-            print("hypotenuse:", hypotenuse)
+                np.array(corner)
+                - np.array((peeps[creature].loc[0], peeps[creature].loc[1]))
+            )
+            # print("hypotenuse:", hypotenuse)
             if hypotenuse >= width:
-                theta = math.acos(width/hypotenuse)
-                print("theta", theta)
+                theta = math.acos(width / hypotenuse)
+                # print("theta", theta)
                 decision = peeps[creature].makeDecision(
                     [peeps[creature].loc[0], peeps[creature].loc[1], theta], obst
                 )
