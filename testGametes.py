@@ -31,12 +31,24 @@ class NeuralNet(torch.nn.Module):
         x = self.fc2(x)
         return x
 
+def blendGenome(gamete1, gamete2):
+    parent1 = gamete1.split()
+    parent2 = gamete2.split()
+    newGenome = ""
+    for chromosome in range(28):
+        if chromosome % 2 == 0:
+            newGenome += parent1[chromosome] + " "
+        else:
+            newGenome += parent2[chromosome] + " "
+    return newGenome[:-1]
 
 class Agent:
-    def __init__(self, _loc, _genome):
+    def __init__(self, _loc, gamete1, gamete2):
         self.loc = _loc
-        self.genome = _genome
-        weights = _genome.split()
+        self.gamete1 = gamete1
+        self.gamete2 = gamete2
+        self.genome = blendGenome(gamete1, gamete2)
+        weights = self.genome.split()
         weights = list(map(hexToFloat, weights))
         self.brain = NeuralNet(weights)
         self.alive = True
@@ -50,7 +62,7 @@ class Agent:
         outputT = self.brain(inputT)
         dec = torch.argmax(outputT).item()
         verbose = ["up", "down", "left", "right"]
-        if dec in get_movement_choices(self.loc, (16, 16)):
+        if dec in get_movement_choices(self.loc, (dim, dim)):
             if dec == 2:
                 self.loc = (self.loc[0] - 1, self.loc[1])
             if dec == 3:
@@ -62,6 +74,15 @@ class Agent:
             return (dec, verbose[dec])
         else:
             return None
+    
+    def getGamete(self):
+        parent1 = self.gamete1.split()
+        parent2 = self.gamete2.split()
+        gamete = ''
+        for chromosome in range(28):
+            randInt = np.random.randint(0, 17)
+            gamete += parent1[chromosome][:randInt] + parent2[chromosome][randInt:] + ' '
+        return gamete[:-1]
 
 
 # Helper function to create hex value using our custom convention
@@ -113,7 +134,6 @@ def pop_random(lst):
     idx = random.randrange(0, len(lst))
     return lst.pop(idx)
 
-
 # def move(action, loc):
 #     if action[1] == "left":
 #         return (loc[0] - 1, loc[1])
@@ -133,22 +153,30 @@ def pop_random(lst):
 # print(test.getDecision([1.0, 2.0, 3.0]))
 # endDec = time.time()
 
-G = 5  # number of generations
-t = 50  # timesteps per generation
-N = 5# initial number of creatures
+G = 50  # number of generations
+t = 100# timesteps per generation
+N = 40# initial number of creatures
+dim = 100
 peeps = []  # list of creatures
 options = [1.0, 2.0, 3.0]
 record = True  # Controls whether or not to store gifs of run
+survivalRate = []
+genBucket = []
 
 for creature in range(N):
-    peeps.append(Agent((random.randint(0, 16), random.randint(0, 16)), randomGenome()))
+    peeps.append(Agent((random.randint(0, dim), random.randint(0, dim)), randomGenome(), randomGenome()))
 
 survival_percentages = []
 
 for generation in range(G):
+    if generation % 5 == 0:
+        record = True
+    else:
+        record = False
+
     # Random Placement
     for creature in range(len(peeps)):
-        peeps[creature].loc = (random.randint(0, 16), random.randint(0, 16))
+        peeps[creature].loc = (random.randint(0, dim), random.randint(0, dim))
 
     # Movement step
     for step in range(t):
@@ -159,13 +187,13 @@ for generation in range(G):
             locs = [peep.loc for peep in peeps]
             x = [x[0] for x in locs]
             y = [y[1] for y in locs]
-            if record:
-                plt.scatter(x, y)
-                plt.xlim(0, 16)
-                plt.ylim(0, 16)
-                plt.savefig("frames/bruh{}.png".format(step))
-                # plt.show()
-                plt.close()
+        if record:
+            plt.scatter(x, y)
+            plt.xlim(0, dim)
+            plt.ylim(0, dim)
+            plt.savefig("frames/bruh{}.png".format(step))
+            # plt.show()
+            plt.close()
     if record:
         frames = []
         for i in range(t):
@@ -176,10 +204,12 @@ for generation in range(G):
 
     # Evaluation step
     for creature in range(len(peeps)):
-        if peeps[creature].loc[0] < 8:
+        if peeps[creature].loc[0] < dim/2:
             peeps[creature].alive = False
     peeps = [peep if peep.alive else None for peep in peeps]
     peeps = list(filter(lambda item: item is not None, peeps))
+    survivalRate.append(len(peeps)/ N)
+    genBucket.append(generation + 1)
 
     peeps_c = peeps.copy()
     # Reproduction step
@@ -191,27 +221,15 @@ for generation in range(G):
         pair = rand1, rand2
         pairs.append(pair)
 
+    peeps = []
     for newPeep in range(N):
         pair = pairs[random.randint(0, len(pairs) - 1)]
-        parent1 = pair[0].genome.split()
-        parent2 = pair[1].genome.split()
-        newGenome = ""
-        for chromosome in range(28):
-            if chromosome % 2 == 0:
-                newGenome += parent1[chromosome] + " "
-            else:
-                newGenome += parent2[chromosome] + " "
-        newGenome = newGenome[:-1]
-        peeps.append(Agent((0, 0), newGenome))
-    
-    curr_survival_percentage = len(peeps) / N
-    survival_percentages.append(curr_survival_percentage)
+        parent1 = pair[0].getGamete()
+        parent2 = pair[1].getGamete()
+        peeps.append(Agent((random.randint(0, dim), random.randint(0, dim)), parent1, parent2))
 
-    plt.plot(survival_percentages)
-    plt.title('Survival Rate Across Generations')
-    plt.xlabel('Generation')
-    plt.ylabel('Survival Rate')
-    plt.show()
+    
+
 
 # for generation
 #   for timestep
@@ -224,3 +242,10 @@ for generation in range(G):
 
 
 # print("Init time: {}, Dec time: {}".format(endInit - startInit, endDec - startDec))
+plt.plot(genBucket, survivalRate)
+plt.title('Survival Rate Across Generations')
+plt.xlabel('Generation')
+plt.ylabel('Survival Rate')
+plt.show()
+
+
