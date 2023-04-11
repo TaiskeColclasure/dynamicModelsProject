@@ -114,6 +114,13 @@ def pop_random(lst):
     return lst.pop(idx)
 
 
+def rand_not_obst(low, high, obst):
+    while True:
+        coord = (random.randint(low, high), random.randint(low, high))
+        if coord not in obst:
+            return coord
+
+
 # def move(action, loc):
 #     if action[1] == "left":
 #         return (loc[0] - 1, loc[1])
@@ -135,7 +142,7 @@ def pop_random(lst):
 
 G = 5  # number of generations
 t = 50  # timesteps per generation
-N = 5# initial number of creatures
+N = 5  # initial number of creatures
 peeps = []  # list of creatures
 options = [1.0, 2.0, 3.0]
 record = True  # Controls whether or not to store gifs of run
@@ -203,14 +210,14 @@ for generation in range(G):
                 newGenome += parent2[chromosome] + " "
         newGenome = newGenome[:-1]
         peeps.append(Agent((0, 0), newGenome))
-    
+
     curr_survival_percentage = len(peeps) / N
     survival_percentages.append(curr_survival_percentage)
 
     plt.plot(survival_percentages)
-    plt.title('Survival Rate Across Generations')
-    plt.xlabel('Generation')
-    plt.ylabel('Survival Rate')
+    plt.title("Survival Rate Across Generations")
+    plt.xlabel("Generation")
+    plt.ylabel("Survival Rate")
     plt.show()
 
 # for generation

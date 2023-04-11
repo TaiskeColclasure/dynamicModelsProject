@@ -1,9 +1,7 @@
 import numpy as np
 import struct
 import torch
-import time
 import random
-from itertools import combinations
 import math
 import matplotlib.pyplot as plt
 import imageio
@@ -31,6 +29,7 @@ class NeuralNet(torch.nn.Module):
         x = self.fc2(x)
         return x
 
+
 def blendGenome(gamete1, gamete2):
     parent1 = gamete1.split()
     parent2 = gamete2.split()
@@ -41,6 +40,7 @@ def blendGenome(gamete1, gamete2):
         else:
             newGenome += parent2[chromosome] + " "
     return newGenome[:-1]
+
 
 class Agent:
     def __init__(self, _loc, gamete1, gamete2):
@@ -57,12 +57,12 @@ class Agent:
         print(self.loc)
         print(self.genome)
 
-    def makeDecision(self, inputArray):
+    def makeDecision(self, inputArray, obst):
         inputT = torch.tensor(inputArray)
         outputT = self.brain(inputT)
         dec = torch.argmax(outputT).item()
         verbose = ["up", "down", "left", "right"]
-        if dec in get_movement_choices(self.loc, (dim, dim)):
+        if dec in get_movement_choices(self.loc, (dim, dim), obst):
             if dec == 2:
                 self.loc = (self.loc[0] - 1, self.loc[1])
             if dec == 3:
@@ -74,14 +74,16 @@ class Agent:
             return (dec, verbose[dec])
         else:
             return None
-    
+
     def getGamete(self):
         parent1 = self.gamete1.split()
         parent2 = self.gamete2.split()
-        gamete = ''
+        gamete = ""
         for chromosome in range(28):
             randInt = np.random.randint(0, 17)
-            gamete += parent1[chromosome][:randInt] + parent2[chromosome][randInt:] + ' '
+            gamete += (
+                parent1[chromosome][:randInt] + parent2[chromosome][randInt:] + " "
+            )
         return gamete[:-1]
 
 
@@ -117,22 +119,38 @@ def distance(p1, p2):
     return math.sqrt(d1**2 + d2**2)
 
 
-def get_movement_choices(loc, constraints):
+def get_movement_choices(loc, constraints, obstacles=None):
     choices = [0, 1, 2, 3]
-    if loc[1] == 0:  # N
+    if loc[1] == 0 or (loc[0], loc[1] - 1) in obstacles:  # N
         choices.pop(choices.index(0))
-    if loc[0] == constraints[0]:  # E
+    if loc[0] == constraints[0] or (loc[0] + 1, loc[1]) in obstacles:  # E
         choices.pop(choices.index(3))
-    if loc[1] == constraints[1]:  # S
+    if loc[1] == constraints[1] or (loc[0], loc[1] + 1) in obstacles:  # S
         choices.pop(choices.index(1))
-    if loc[0] == 0:  # W
+    if loc[0] == 0 or (loc[0] - 1, loc[1]) in obstacles:  # W
         choices.pop(choices.index(2))
     return choices
+
+
+def rect_obst(tl, w, h):
+    coords = []
+    for i in range(tl[0], tl[0] + w):
+        for j in range(tl[1], tl[1] + h):
+            coords.append((i, j))
+    return coords
 
 
 def pop_random(lst):
     idx = random.randrange(0, len(lst))
     return lst.pop(idx)
+
+
+def rand_not_obst(low, high, obst):
+    while True:
+        coord = (random.randint(low, high), random.randint(low, high))
+        if coord not in obst:
+            return coord
+
 
 # def move(action, loc):
 #     if action[1] == "left":
@@ -154,8 +172,8 @@ def pop_random(lst):
 # endDec = time.time()
 
 G = 50  # number of generations
-t = 100# timesteps per generation
-N = 40# initial number of creatures
+t = 100  # timesteps per generation
+N = 40  # initial number of creatures
 dim = 100
 peeps = []  # list of creatures
 options = [1.0, 2.0, 3.0]
@@ -163,8 +181,16 @@ record = True  # Controls whether or not to store gifs of run
 survivalRate = []
 genBucket = []
 
+obst = rect_obst((60, 15), 10, 30)
+
 for creature in range(N):
-    peeps.append(Agent((random.randint(0, dim), random.randint(0, dim)), randomGenome(), randomGenome()))
+    peeps.append(
+        Agent(
+            rand_not_obst(0, dim, obst),
+            randomGenome(),
+            randomGenome(),
+        )
+    )
 
 survival_percentages = []
 
@@ -176,18 +202,21 @@ for generation in range(G):
 
     # Random Placement
     for creature in range(len(peeps)):
-        peeps[creature].loc = (random.randint(0, dim), random.randint(0, dim))
+        peeps[creature].loc = rand_not_obst(0, dim, obst)
 
     # Movement step
     for step in range(t):
         for creature in range(len(peeps)):
             decision = peeps[creature].makeDecision(
-                [peeps[creature].loc[0], peeps[creature].loc[1], 0.0]
+                [peeps[creature].loc[0], peeps[creature].loc[1], 0.0], obst
             )
             locs = [peep.loc for peep in peeps]
             x = [x[0] for x in locs]
             y = [y[1] for y in locs]
         if record:
+            x_obst = [x[0] for x in obst]
+            y_obst = [y[1] for y in obst]
+            plt.scatter(x_obst, y_obst)
             plt.scatter(x, y)
             plt.xlim(0, dim)
             plt.ylim(0, dim)
@@ -204,11 +233,11 @@ for generation in range(G):
 
     # Evaluation step
     for creature in range(len(peeps)):
-        if peeps[creature].loc[0] < dim/2:
+        if peeps[creature].loc[0] < dim / 2:
             peeps[creature].alive = False
     peeps = [peep if peep.alive else None for peep in peeps]
     peeps = list(filter(lambda item: item is not None, peeps))
-    survivalRate.append(len(peeps)/ N)
+    survivalRate.append(len(peeps) / N)
     genBucket.append(generation + 1)
 
     peeps_c = peeps.copy()
@@ -226,9 +255,7 @@ for generation in range(G):
         pair = pairs[random.randint(0, len(pairs) - 1)]
         parent1 = pair[0].getGamete()
         parent2 = pair[1].getGamete()
-        peeps.append(Agent((random.randint(0, dim), random.randint(0, dim)), parent1, parent2))
-
-    
+        peeps.append(Agent((rand_not_obst(0, dim, obst)), parent1, parent2))
 
 
 # for generation
@@ -243,9 +270,7 @@ for generation in range(G):
 
 # print("Init time: {}, Dec time: {}".format(endInit - startInit, endDec - startDec))
 plt.plot(genBucket, survivalRate)
-plt.title('Survival Rate Across Generations')
-plt.xlabel('Generation')
-plt.ylabel('Survival Rate')
+plt.title("Survival Rate Across Generations")
+plt.xlabel("Generation")
+plt.ylabel("Survival Rate")
 plt.show()
-
-
