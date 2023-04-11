@@ -160,6 +160,16 @@ def rand_not_obst(low, high, obst):
             return coord
 
 
+def generate_random_hex_colors(n):
+    # Generate n random integers between 0 and 16777215
+    random_integers = np.random.randint(16777216, size=n)
+    
+    # Convert the integers to hex strings and remove the leading "0x"
+    hex_colors = ['#' + hex(i)[2:].upper().zfill(6) for i in random_integers]
+    
+    return hex_colors
+
+
 # def move(action, loc):
 #     if action[1] == "left":
 #         return (loc[0] - 1, loc[1])
@@ -188,10 +198,12 @@ options = [1.0, 2.0, 3.0]
 record = True  # Controls whether or not to store gifs of run
 survivalRate = []
 genBucket = []
-width = 10
-height = 30
-corner_x = 60
+width = 5
+height = 70
+corner_x = 40
 corner_y = 15
+colors = generate_random_hex_colors(N)
+gifInterval = 10
 
 obst = rect_obst((corner_x, corner_y), width, height)
 
@@ -207,7 +219,7 @@ for creature in range(N):
 survival_percentages = []
 
 for generation in range(G):
-    if generation % 5 == 0:
+    if generation % gifInterval == 0 or generation == G-1:
         record = True
     else:
         record = False
@@ -245,7 +257,8 @@ for generation in range(G):
             x_obst = [x[0] for x in obst]
             y_obst = [y[1] for y in obst]
             plt.scatter(x_obst, y_obst)
-            plt.scatter(x, y)
+            plt.scatter(x, y, c = colors)
+            plt.axvline(x=dim/2, color='b')
             plt.xlim(0, dim)
             plt.ylim(0, dim)
             plt.savefig("frames/bruh{}.png".format(step))
