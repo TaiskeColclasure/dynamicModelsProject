@@ -82,7 +82,8 @@ class Agent:
         for chromosome in range(28):
             randInt = np.random.randint(0, 17)
             gamete += (
-                parent1[chromosome][:randInt] + parent2[chromosome][randInt:] + " "
+                parent1[chromosome][:randInt] +
+                parent2[chromosome][randInt:] + " "
             )
         return gamete[:-1]
 
@@ -132,10 +133,10 @@ def get_movement_choices(loc, constraints, obstacles=None):
     return choices
 
 
-def rect_obst(tl, w, h):
+def rect_obst(bl, w, h):
     coords = []
-    for i in range(tl[0], tl[0] + w):
-        for j in range(tl[1], tl[1] + h):
+    for i in range(bl[0], bl[0] + w):
+        for j in range(bl[1], bl[1] + h):
             coords.append((i, j))
     return coords
 
@@ -180,8 +181,12 @@ options = [1.0, 2.0, 3.0]
 record = True  # Controls whether or not to store gifs of run
 survivalRate = []
 genBucket = []
+width = 10
+height = 30
+corner_x = 60
+corner_y = 15
 
-obst = rect_obst((60, 15), 10, 30)
+obst = rect_obst((corner_x, corner_y), width, height)
 
 for creature in range(N):
     peeps.append(
@@ -207,9 +212,19 @@ for generation in range(G):
     # Movement step
     for step in range(t):
         for creature in range(len(peeps)):
-            decision = peeps[creature].makeDecision(
-                [peeps[creature].loc[0], peeps[creature].loc[1], 0.0], obst
-            )
+            if peeps[creature].loc[1] <= 50:
+                corner = (corner_x, corner_y)
+            else:
+                corner = (corner_x, corner_y + height)
+            hypotenuse = np.linalg.norm(
+                np.array(corner) - np.array((peeps[creature].loc[0], peeps[creature].loc[1])))
+            print("hypotenuse:", hypotenuse)
+            if hypotenuse >= width:
+                theta = math.acos(width/hypotenuse)
+                print("theta", theta)
+                decision = peeps[creature].makeDecision(
+                    [peeps[creature].loc[0], peeps[creature].loc[1], theta], obst
+                )
             locs = [peep.loc for peep in peeps]
             x = [x[0] for x in locs]
             y = [y[1] for y in locs]
