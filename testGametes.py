@@ -189,7 +189,7 @@ def generate_random_hex_colors(n):
 # print(test.getDecision([1.0, 2.0, 3.0]))
 # endDec = time.time()
 
-G = 50  # number of generations
+G = 800  # number of generations
 t = 100  # timesteps per generation
 N = 40  # initial number of creatures
 dim = 100
@@ -200,10 +200,11 @@ survivalRate = []
 genBucket = []
 width = 5
 height = 70
-corner_x = 40
+corner_x = 47
 corner_y = 15
 colors = generate_random_hex_colors(N)
-gifInterval = 10
+gifInterval = 40
+selectionCrit = 1.25
 
 obst = rect_obst((corner_x, corner_y), width, height)
 
@@ -258,7 +259,7 @@ for generation in range(G):
             y_obst = [y[1] for y in obst]
             plt.scatter(x_obst, y_obst)
             plt.scatter(x, y, c = colors)
-            plt.axvline(x=dim/2, color='b')
+            plt.axvline(x=dim/selectionCrit, color='b')
             plt.xlim(0, dim)
             plt.ylim(0, dim)
             plt.savefig("frames/bruh{}.png".format(step))
@@ -274,7 +275,7 @@ for generation in range(G):
 
     # Evaluation step
     for creature in range(len(peeps)):
-        if peeps[creature].loc[0] < dim / 2:
+        if peeps[creature].loc[0] < dim / selectionCrit:
             peeps[creature].alive = False
     peeps = [peep if peep.alive else None for peep in peeps]
     peeps = list(filter(lambda item: item is not None, peeps))
