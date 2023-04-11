@@ -236,7 +236,7 @@ for generation in range(G):
                 )
             else:
                 decision = peeps[creature].makeDecision(
-                    [peeps[creature].loc[0], peeps[creature].loc[1], -1], obst
+                    [peeps[creature].loc[0], peeps[creature].loc[1], -1.0], obst
                 )
             locs = [peep.loc for peep in peeps]
             x = [x[0] for x in locs]
