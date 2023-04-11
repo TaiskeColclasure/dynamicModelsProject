@@ -82,7 +82,8 @@ class Agent:
         for chromosome in range(28):
             randInt = np.random.randint(0, 17)
             gamete += (
-                parent1[chromosome][:randInt] + parent2[chromosome][randInt:] + " "
+                parent1[chromosome][:randInt] +
+                parent2[chromosome][randInt:] + " "
             )
             if np.random.uniform() < 0.0005:
                 mutant_string = gamete[:-17] + gamete[-17:].replace(
@@ -232,6 +233,10 @@ for generation in range(G):
                 # print("theta", theta)
                 decision = peeps[creature].makeDecision(
                     [peeps[creature].loc[0], peeps[creature].loc[1], theta], obst
+                )
+            else:
+                decision = peeps[creature].makeDecision(
+                    [peeps[creature].loc[0], peeps[creature].loc[1], -1], obst
                 )
             locs = [peep.loc for peep in peeps]
             x = [x[0] for x in locs]
